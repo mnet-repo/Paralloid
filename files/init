@@ -255,7 +255,7 @@ TARGET="$(cat /dev/.paralloid_boot_target)"
 TARGET_DIR=$(dirname $TARGET)
 
 if [ $TARGET == "internal" ];then
-    mount -o ro /dev/block/mapper/system_orig /target
+    mount -o rw /dev/block/mapper/systemx /target
     
     # We skipped these partitions using skip_mount.cfg in our rootfs because
     # they might have been deleted by the user to free up space (if they
@@ -267,8 +267,8 @@ if [ $TARGET == "internal" ];then
     # Note that these partitions are mounted in /target_tmp -- they will be
     # moved to /target by the next move_mount_tree command
     mkdir -p /target_tmp/{system_ext,product,oem}
-    mount -o ro /dev/block/mapper/system_ext /target_tmp/system_ext
-    mount -o ro /dev/block/mapper/product /target_tmp/product
+    mount -o ro /dev/block/mapper/system_ext_b /target_tmp/system_ext
+    mount -o ro /dev/block/mapper/product_b /target_tmp/product
     mount -o ro /dev/block/mapper/oem /target_tmp/oem
     # TODO: implement slotselect for {,Virtual-}A/B
     
@@ -288,24 +288,15 @@ if [ $TARGET == "internal" ];then
         done
     done
 else
-    # Create userdata image if it doesn't exist yet
-    if [ ! -f "$TARGET_DIR/userdata.img" ];then
-        # Test if the target filesystem supports fallocate by allocating a small file
-        fallocate -l 1M $TARGET_DIR/test_fallocate.img
-        if [ $? -ne 0 ];then
-            # Fall back to dd if `fallocate` failed
-            dd if=/dev/zero of=$TARGET_DIR/userdata.img bs=$((1024*1024)) count=8k
-        else
-            fallocate -l 8G $TARGET_DIR/userdata.img
-        fi
-        # Remove the temporary file
-        rm $TARGET_DIR/test_fallocate.img
-        # Call the same script in /bin that the diverter UI uses
+	# Create userdata image if it doesn't exist yet.
+	if [ ! -f "$TARGET_DIR/userdata.img" ]; then
+        fallocate -l 8G $TARGET_DIR/userdata.img
         format-userdata-image $TARGET_DIR/userdata.img
+	fi
     fi
     
     # Mount the system images
-    mount -o ro,loop $TARGET /target
+    mount -o rw,loop $TARGET /target
     
     if [ -f "$TARGET_DIR/product.img" ];then
         umount /target/product
@@ -368,32 +359,11 @@ if [ $TARGET != "internal" ];then
     echo "/dev/block/sd_userdata    u:object_r:userdata_block_device:s0" >> /dev/override/selinux/plat_file_contexts
 
     mkdir -p /dev/override/fstabs
-    for fstab in $(cd /target/vendor/etc/; echo fstab*);do
+    for fstab in $(cd /target/vendor/etc; echo fstab*);do
         cp /target/vendor/etc/$fstab /dev/override/fstabs/$fstab
         sed -i /sdcard/d /dev/override/fstabs/$fstab
-        sed -i -E -e 's;([^ ]*)(.*/data[[:>:]].*);/dev/block/sd_userdata \2;g' /dev/override/fstabs/$fstab
-        sed -i -E -e '/sd_userdata/s;f2fs;ext4;g' /dev/override/fstabs/$fstab
-        # Remove f2fs options typically used by Android that are not supported by ext4
-        sed -i -E -e '/sd_userdata/s;fsync_mode=[^, \t]*,?;;g' /dev/override/fstabs/$fstab
-        sed -i -E -e '/sd_userdata/s;reserve_root=[^, \t]*,?;;g' /dev/override/fstabs/$fstab
-        sed -i -E -e '/sd_userdata/s;checkpoint=[^, \t]*,?;;g' /dev/override/fstabs/$fstab
-        # Disable inline encryption -- inline encryption and wrapped_keys require support
-        # of the UFS / eMMC host controller. In our case, this is not possible since we are
-        # overriding the block device with a loop device.
-        sed -i -E -e '/sd_userdata/s;inlinecrypt,?;;g' /dev/override/fstabs/$fstab
-        # Remove all extra flags from the fileencryption parameter -- these may include
-        # inlinecrypt and wrappedkeys
-        sed -i -E -e '/sd_userdata/s;fileencryption=([^,: \t]*)(:[^, \t]*)?(,?);fileencryption=\1\3;g' /dev/override/fstabs/$fstab
-        # Disable metadata encryption -- this likely requires inline encryption hardware as well;
-        # software-based fallback needs kernel options which may not be enabled on all kernels
-        sed -i -E -e 's;keydirectory=[^, \t]*,?;;g' /dev/override/fstabs/$fstab
-        sed -i -E -e 's;metadata_encryption=[^, \t]*,?;;g' /dev/override/fstabs/$fstab
         sed -i '/product/d' /dev/override/fstabs/$fstab
-        sed -i '/system_ext/d' /dev/override/fstabs/$fstab
-        # Remove stray commas at the end of option lists that may be resulted from the
-        # previous sed commands
-        sed -i -E -e 's;, ; ;g' /dev/override/fstabs/$fstab
-        sed -i -E -e 's;,$;;g' /dev/override/fstabs/$fstab
+        sed -i "/\/data/c\/dev/block/sd_userdata				        /data                  f2fs    noatime,nosuid,nodev,discard,fsync_mode=nobarrier    wait,check,formattable" /dev/override/fstabs/$fstab
     done
 
     # Label the overridden files with the correct SELinux contexts using an in-memory fs
