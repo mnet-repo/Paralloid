@@ -1,19 +1,19 @@
 #!/bin/bash
 
-if ! which ndk-build >/dev/null 2>&1;then
-    export PATH=$PATH:$PWD/NDK/ndk
-    export ANDROID_NDK=$PWD/NDK/ndk
-    if [ ! -d NDK ];then
-        mkdir -p NDK
-        (
-            cd NDK
-            wget https://dl.google.com/android/repository/android-ndk-r22b-linux-x86_64.zip
-            unzip android-ndk-r22b-linux-x86_64.zip
-            ln -s android-ndk-r22b ndk
-        )
+#if ! which ndk-build >/dev/null 2>&1;then
+    export ANDROID_NDK=/root/android-ndk-r23b
+    export PATH=$PATH:$ANDROID_NDK
+#    if [ ! -d NDK ];then
+#        mkdir -p NDK
+#        (
+#            cd NDK
+#            wget https://dl.google.com/android/repository/android-ndk-r22b-linux-x86_64.zip
+#            unzip android-ndk-r22b-linux-x86_64.zip
+#            ln -s /root/android-ndk-r23b ndk
+#        )
 
-    fi
-fi
+#    fi
+#fi
 # Ensure busybox exists first
 if [ ! -f busybox/build/busybox ];then
     (
@@ -24,13 +24,13 @@ fi
 
 # Run NDK build first
 pushd native
-ndk-build -j || exit 1
+/root/android-ndk-r23b/ndk-build -j || exit 1
 popd
 
 rm -Rf rootfs rootfs.img
 
 # This list should include all possible first-stage mountpoints on all known devices
-mkdir -p rootfs/{apex,sbin,bin,config,proc,sys,dev,system/bin,vendor,product,odm,mnt,first_stage_ramdisk,tmp,metadata,bt_firmware,efs,firmware,oem,persist,postinstall,system_ext,sec_storage,dev/pts,dev/socket,sys/fs/selinux,mnt/vendor,mnt/product,debug_ramdisk,system/system_ext/etc/init/config,system/etc/init/config/,prism,optics,paralloid_ramdisk,paralloid_oldroot}
+mkdir -p rootfs/{apex,sbin,bin,config,proc,sys,dev,system/bin,vendor,product,odm,mnt,first_stage_ramdisk,tmp,metadata,bt_firmware,efs,firmware,oem,persist,postinstall,system_ext,sec_storage,dev/pts,dev/socket,sys/fs/selinux,mnt/vendor,mnt/product,debug_ramdisk,system/system_ext/etc/init/config,system/etc/init/config/,ramdisk,oldroot}
 # Temporary directories for Paralloid's boot process
 mkdir -p rootfs/target/ rootfs/target_tmp/
 
@@ -60,24 +60,30 @@ ln -s /bin/busybox rootfs/sbin/telnetd
 cp files/adb_debug.prop rootfs/adb_debug.prop
 chmod 0644 rootfs/adb_debug.prop
 
-cp files/init rootfs/init
 cp files/init rootfs/system/bin/init
-chmod 0755 rootfs/init
+cp files/mkfs.f2fs rootfs/bin/mkfs.f2fs
 chmod 0755 rootfs/system/bin/init
+chmod 0755 rootfs/bin/mkfs.f2fs
+
+cd rootfs
+ln -s system/bin/init init
+cd ..
 
 cp files/format-userdata-image rootfs/bin/format-userdata-image
+cp files/format-userdata-image-fbe rootfs/bin/format-userdata-image-fbe
 cp files/recursive_umount rootfs/bin/recursive_umount
 chmod 0755 rootfs/bin/format-userdata-image
+chmod 0755 rootfs/bin/format-userdata-image-fbe
 chmod 0755 rootfs/bin/recursive_umount
 
-cp native/libs/armeabi-v7a/e2fsdroid rootfs/bin/e2fsdroid
+cp native/libs/arm64-v8a/e2fsdroid rootfs/bin/e2fsdroid
 chmod 0755 rootfs/bin/e2fsdroid
-cp native/libs/armeabi-v7a/mke2fs rootfs/bin/mke2fs
+cp native/libs/arm64-v8a/mke2fs rootfs/bin/mke2fs
 chmod 0755 rootfs/bin/mke2fs
 
-cp native/libs/armeabi-v7a/paralloid_ui rootfs/bin/paralloid_ui
-cp native/libs/armeabi-v7a/minfastbootd rootfs/bin/minfastbootd
-cp native/libs/armeabi-v7a/move_mount_tree rootfs/bin/move_mount_tree
+cp native/libs/arm64-v8a/paralloid_ui rootfs/bin/paralloid_ui
+cp native/libs/arm64-v8a/minfastbootd rootfs/bin/minfastbootd
+cp native/libs/arm64-v8a/move_mount_tree rootfs/bin/move_mount_tree
 chmod 0755 rootfs/bin/paralloid_ui
 chmod 0755 rootfs/bin/minfastbootd
 chmod 0755 rootfs/bin/move_mount_tree
