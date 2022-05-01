@@ -108,9 +108,9 @@ private:
 public:
     DeleteDataConfirmationMenu(shared_ptr<Menu> last_menu, fs::path image_path)
       : ConfirmationMenu(
-	  "                                   _ \\                        /   /        _)      /\n"
- 	  "                                   __/  _ ` /   __/  _ ` /   /   /  _ \\    /  _ ` /\n"
- 	  "                                __/   \\__,_/ __/   \\__,_/ __/ __/ \\___/ __/ \\__,_/\n"
+          "                                   _ \\                    /  /      _)     /\n" \
+          "                                   __/ _ ` /  __/ _ ` /  /  / _ \\   / _ ` /\n" \
+          "                                __/  \\__,_/__/  \\__,_/__/__/\\___/__/\\__,_/\n" \
  	  "                                                                             unencrypted\n"
 	  " \n"
 	  " \n"
@@ -128,10 +128,10 @@ private:
 public:
     FormatDataConfirmationMenu(shared_ptr<Menu> last_menu, fs::path target_image_path)
       : ConfirmationMenu(
-	  "                                   _ \\                        /   /        _)      /\n"
- 	  "                                   __/  _ ` /   __/  _ ` /   /   /  _ \\    /  _ ` /\n"
- 	  "                                __/   \\__,_/ __/   \\__,_/ __/ __/ \\___/ __/ \\__,_/\n"
- 	  "                                                                             unencrypted\n"
+          "                                   _ \\                    /  /      _)     /\n" \
+          "                                   __/ _ ` /  __/ _ ` /  /  / _ \\   / _ ` /\n" \
+          "                                __/  \\__,_/__/  \\__,_/__/__/\\___/__/\\__,_/\n" \
+	  "                                                                             unencrypted\n"
 	  " \n"
 	  " \n"          
 	  "About to format the userdata image file of the selected target.\n"
