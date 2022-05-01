@@ -9,9 +9,9 @@
     "Long-press volume down for extra options."
 
 #define MENU_TITLE \
-    "                                   _ \                    /  /      _)     /\n" \
-    "                                   __/ _ ` /  __/ _ ` /  /  / _ \   / _ ` /\n" \
-    "                                __/  \__,_/__/  \__,_/__/__/\___/__/\__,_/\n" \
+    "                                   _ \\                    /  /      _)     /\n" \
+    "                                   __/ _ ` /  __/ _ ` /  /  / _ \\   / _ ` /\n" \
+    "                                __/  \\__,_/__/  \\__,_/__/__/\\___/__/\\__,_/\n" \
     "                                                                             unencrypted\n" \
     " \n" \
     " \n" \
@@ -24,10 +24,9 @@ void boot_target_with_confirmation(string target, shared_ptr<Menu> current_menu)
         auto path = fs::path(target);
         if (!fs::exists(path.parent_path() / "userdata.img")) {
             switchMenu(make_shared<BootConfirmationMenu>(
-		"                                   _ \\                        /   /        _)      /\n"
-		"                                   __/  _ ` /   __/  _ ` /   /   /  _ \\    /  _ ` /\n"
-		"                                __/   \\__,_/ __/   \\__,_/ __/ __/ \\___/ __/ \\__,_/\n"
-		"                                                                             unencrypted\n"
+	        "                                   _ \\                    /  /      _)     /\n" \
+	        "                                   __/ _ ` /  __/ _ ` /  /  / _ \\   / _ ` /\n" \
+	        "                                __/  \\__,_/__/  \\__,_/__/__/\\___/__/\\__,_/\n" \
 		" \n"
 		" \n"
                 "About to create a userdata image (8 GiB by default) for this boot target.\n"
@@ -116,9 +115,9 @@ void MainMenu::onItemSelected(int action) {
         boot_target("internal");
     } else if (action == ACTION_BOOT_SDCARD) {
         switchMenu(make_shared<ImageSelectionMenu>(
-    "                                   _ \\                        /   /        _)      /\n"
-    "                                   __/  _ ` /   __/  _ ` /   /   /  _ \\    /  _ ` /\n"
-    "                                __/   \\__,_/ __/   \\__,_/ __/ __/ \\___/ __/ \\__,_/\n"
+    "                                   _ \\                    /  /      _)     /\n" \
+    "                                   __/ _ ` /  __/ _ ` /  /  / _ \\   / _ ` /\n" \
+    "                                __/  \\__,_/__/  \\__,_/__/__/\\___/__/\\__,_/\n" \
     "                                                                             unencrypted\n"
     " \n"
     " \n"
@@ -126,9 +125,9 @@ void MainMenu::onItemSelected(int action) {
             EXT_SDCARD_BASE_PATH));
     } else if (action == ACTION_BOOT_USERDATA) {
         switchMenu(make_shared<ImageSelectionMenu>(
-    "                                   _ \\                        /   /        _)      /\n"
-    "                                   __/  _ ` /   __/  _ ` /   /   /  _ \\    /  _ ` /\n"
-    "                                __/   \\__,_/ __/   \\__,_/ __/ __/ \\___/ __/ \\__,_/\n"
+    "                                   _ \\                    /  /      _)     /\n" \
+    "                                   __/ _ ` /  __/ _ ` /  /  / _ \\   / _ ` /\n" \
+    "                                __/  \\__,_/__/  \\__,_/__/__/\\___/__/\\__,_/\n" \
     "                                                                             unencrypted\n"
     " \n"
     " \n"
@@ -208,9 +207,9 @@ void BootConfirmationMenu::onConfirmed() {
 
 string ExtraOptionsMenu::getTitle() {
     return
-	"                                   _ \\                        /   /        _)      /\n"
-	"                                   __/  _ ` /   __/  _ ` /   /   /  _ \\    /  _ ` /\n"
-	"                                __/   \\__,_/ __/   \\__,_/ __/ __/ \\___/ __/ \\__,_/\n"
+        "                                   _ \\                    /  /      _)     /\n" \
+        "                                   __/ _ ` /  __/ _ ` /  /  / _ \\   / _ ` /\n" \
+        "                                __/  \\__,_/__/  \\__,_/__/__/\\___/__/\\__,_/\n" \
 	"                                                                             unencrypted\n"
 	" \n"
 	" \n"
