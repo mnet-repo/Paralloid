@@ -5,18 +5,18 @@ set -x
 export PATH=/bin:/sbin
 
 # Move our rootfs to a ramdisk to free up the original system partition
-if [ -z "$PARALLOID_RAMDISK" ];then
+if [ -z "$RAMDISK" ];then
     # Gain access to the raw rootfs without all the mountpoints
-    mount -o bind / /paralloid_oldroot
+    mount -o bind / /oldroot
     # Copy all of rootfs to a tmpfs mounted on /paralloid_ramdisk
-    mount -t tmpfs none /paralloid_ramdisk
-    cp -R /paralloid_oldroot/* /paralloid_ramdisk/
-    umount /paralloid_oldroot/
+    mount -t tmpfs none /ramdisk
+    cp -R /oldroot/* /ramdisk/
+    umount /oldroot/
     # Switch to the new rootfs in ramdisk
-    MOVE_MOUNT_RBIND_DIRS="sys" move_mount_tree / /paralloid_ramdisk
-    export PARALLOID_RAMDISK=true
-    cd /paralloid_ramdisk
-    pivot_root /paralloid_ramdisk paralloid_oldroot
+    MOVE_MOUNT_RBIND_DIRS="sys" move_mount_tree / /ramdisk
+    export RAMDISK=true
+    cd /ramdisk
+    pivot_root /ramdisk oldroot
     exec chroot . /system/bin/init
 fi
 
@@ -24,10 +24,10 @@ fi
 # This will be used for overwriting the system partition
 # TODO: Maybe we should pull in part of fs_mgr to implement slotselect, and not
 # depend on this hack.
-export PARALLOID_ROOT_BLKDEV=$(basename $(cat /proc/mounts | grep " /paralloid_oldroot ext4 " | cut -d ' ' -f 1))
+export PARALLOID_ROOT_BLKDEV=$(basename $(cat /proc/mounts | grep " /oldroot ext4 " | cut -d ' ' -f 1))
 
 # Unmount the old root filesystem to free up the system partition
-recursive_umount /paralloid_oldroot
+recursive_umount /oldroot
 
 # Mount a tmpfs on /target_tmp so that we can create mountpoints as needed
 mount -t tmpfs none /target_tmp
@@ -194,31 +194,6 @@ for i in $(cd /sys/dev/block; echo *);do
     DEVNAME=""
 done
 
-# Mount userdata too (without decryption)
-mkdir /dev/mntDATA
-mount -o ro /dev/block/by-name/userdata /dev/mntDATA
-if [ $? -ne 0 ];then
-    # We cannot mount userdata if the device uses metadata encryption on data
-    touch /dev/.userdata_mount_error
-fi
-# Only ever mount data as R/W when the system has already written
-# to the data partition. Otherwise, the internal system partition
-# will fail to boot.
-# TODO: What if the user does not want to use the internal system
-# partition anymore? For example, on devices without dynamic partitions.
-# We should allow the user to write custom images to userdata anyway.
-if [ -d /dev/mntDATA/unencrypted ];then
-    mount -o remount,rw /dev/mntDATA
-    touch /dev/.userdata_mounted
-else
-    # The internal system partition can only initialize encrypted userdata
-    # when it is not mounted.
-    umount /dev/mntDATA
-fi
-
-# Launch the Paralloid UI
-/bin/paralloid_ui > /dev/kmsg 2>&1 &
-
 # Mount sdcard asynchronously (because the controller comes up slow)
 (
     hostController="$(readlink /dev/block/by-name/super |sed -E 's;/dev/(.*)p[0-9]*;\1;g')"
@@ -244,6 +219,31 @@ fi
     fi
 ) &
 
+# Mount userdata too (without decryption)
+mkdir /dev/mntDATA
+mount -o rw /dev/block/by-name/userdata /dev/mntDATA
+if [ $? -ne 0 ];then
+    # We cannot mount userdata if the device uses metadata encryption on data
+    touch /dev/.userdata_mount_error
+fi
+# Only ever mount data as R/W when the system has already written
+# to the data partition. Otherwise, the internal system partition
+# will fail to boot.
+# TODO: What if the user does not want to use the internal system
+# partition anymore? For example, on devices without dynamic partitions.
+# We should allow the user to write custom images to userdata anyway.
+if [ -d /dev/mntDATA/unencrypted ];then
+    mount -o remount,rw /dev/mntDATA
+    touch /dev/.userdata_mounted
+else
+    # The internal system partition can only initialize encrypted userdata
+    # when it is not mounted.
+    umount /dev/mntDATA
+fi
+
+# Launch the Paralloid UI
+/bin/paralloid_ui > /dev/kmsg 2>&1 &
+
 # Wait until we are notified to boot by the UI
 while [ ! -f /dev/.paralloid_boot_target ];do
     sleep 1
@@ -255,9 +255,11 @@ TARGET="$(cat /dev/.paralloid_boot_target)"
 TARGET_DIR=$(dirname $TARGET)
 
 if [ $TARGET == "internal" ];then
+    umount /dev/mntSD
+    umount /dev/mntDATA
     mount -o rw /dev/block/mapper/systemx /target
     
-    # We skipped these partitions using skip_mount.cfg in our rootfs because
+    # We skipped these partitions using skip_mount.cfg in our rootfs becausee
     # they might have been deleted by the user to free up space (if they
     # do not want to use official ROMs in the internal partitions)
     # Not skipping them in first stage ramdisk would result in crashes if they
@@ -267,8 +269,8 @@ if [ $TARGET == "internal" ];then
     # Note that these partitions are mounted in /target_tmp -- they will be
     # moved to /target by the next move_mount_tree command
     mkdir -p /target_tmp/{system_ext,product,oem}
-    mount -o ro /dev/block/mapper/system_ext_b /target_tmp/system_ext
-    mount -o ro /dev/block/mapper/product_b /target_tmp/product
+    mount -o ro /dev/block/mapper/system_ext /target_tmp/system_ext
+    mount -o ro /dev/block/mapper/product /target_tmp/product
     mount -o ro /dev/block/mapper/oem /target_tmp/oem
     # TODO: implement slotselect for {,Virtual-}A/B
     
@@ -288,19 +290,13 @@ if [ $TARGET == "internal" ];then
         done
     done
 else
-	# Create userdata image if it doesn't exist yet.
-	if [ ! -f "$TARGET_DIR/userdata.img" ]; then
-        fallocate -l 8G $TARGET_DIR/userdata.img
-        format-userdata-image $TARGET_DIR/userdata.img
-	fi
-    fi
     
     # Mount the system images
     mount -o rw,loop $TARGET /target
     
     if [ -f "$TARGET_DIR/product.img" ];then
         umount /target/product
-        mount -o ro,loop $TARGET_DIR/product.img /target/product
+        mount -o rw,loop $TARGET_DIR/product.img /target/product
     fi
 fi
 
@@ -318,6 +314,11 @@ fi
 move_mount_tree /target_tmp /target
 
 if [ $TARGET != "internal" ];then
+    # Create userdata image if it doesn't exist yet
+    if [ ! -e $TARGET_DIR/userdata.img ];then
+       fallocate -l 8G $TARGET_DIR/userdata.img
+       format-userdata-image $TARGET_DIR/userdata.img
+    fi
     # Create loop device for userdata on sdcard
     mkdir -p /target/dev/block/
     # Minor code / 8 correspond to the ID of the loop device.
@@ -358,14 +359,11 @@ if [ $TARGET != "internal" ];then
     cp /target/system/etc/selinux/plat_file_contexts /dev/override/selinux/
     echo "/dev/block/sd_userdata    u:object_r:userdata_block_device:s0" >> /dev/override/selinux/plat_file_contexts
 
-    mkdir -p /dev/override/fstabs
+    mkdir /dev/override/fstabs
     for fstab in $(cd /target/vendor/etc; echo fstab*);do
         cp /target/vendor/etc/$fstab /dev/override/fstabs/$fstab
-        sed -i /sdcard/d /dev/override/fstabs/$fstab
-        sed -i '/product/d' /dev/override/fstabs/$fstab
-        sed -i "/\/data/c\/dev/block/sd_userdata				        /data                  f2fs    noatime,nosuid,nodev,discard,fsync_mode=nobarrier    wait,check,formattable" /dev/override/fstabs/$fstab
+	sed -i "/\/data/c\/dev/block/sd_userdata				        /data                  f2fs    noatime,nosuid,nodev,discard,fsync_mode=nobarrier    wait,check,formattable" /dev/override/fstabs/$fstab
     done
-
     # Label the overridden files with the correct SELinux contexts using an in-memory fs
     # /dev/ram0 may not be enough for sepolicy on some devices; it cannot always be grown,
     # so just create our own ramdisk image
@@ -384,7 +382,7 @@ if [ $TARGET != "internal" ];then
     mkdir /dev/mntRAM
     mount /dev/ramdisk.img /dev/mntRAM
     # Actually apply the fstab override
-    for fstab in $(cd /target/vendor/etc/; echo fstab*);do
+    for fstab in $(cd /dev/override/fstabs/; echo fstab*);do
         mount -o bind /dev/mntRAM/fstabs/$fstab /target/vendor/etc/$fstab
     done
     # Actually apply the sepolicy override
@@ -393,9 +391,9 @@ if [ $TARGET != "internal" ];then
 fi
 
 # UNCOMMENTME: To grab kernel logs to ttyGS0 you'll need SELinux permissive
-#(cat /proc/cmdline |sed -E 's/androidboot.selinux=[^ ]*//g' |tr -d '\n'; echo " " androidboot.selinux=permissive ) > /dev/cmdline
-#chmod 0400 /dev/cmdline
-#mount -o bind /dev/cmdline /target/proc/cmdline
+(cat /proc/cmdline |sed -E 's/androidboot.selinux=[^ ]*//g' |tr -d '\n'; echo " " androidboot.selinux=permissive ) > /dev/cmdline
+chmod 0400 /dev/cmdline
+mount -o bind /dev/cmdline /target/proc/cmdline
 
 # Disable /dev/kmsg rate limiting
 echo on > /proc/sys/kernel/printk_devkmsg
@@ -413,14 +411,14 @@ umount /dev/usb-ffs/fastboot
 
 # COMMENTME: To grab kernel logs to ttyGS0 you need to keep usb gadget open
 echo > $gadget/UDC
-rm $gadget/configs/c.1/f4
-rm $gadget/configs/c.1/f3
-rm $gadget/configs/c.1/f2
-rm $gadget/configs/c.1/f1
-rmdir $gadget/configs/c.1/strings/0x409/
-rmdir $gadget/configs/c.1/strings/0x409
-rmdir $gadget/configs/c.1
-rmdir $gadget/configs/c.1/
+rm $gadget/configs/b.1/f4
+rm $gadget/configs/b.1/f3
+rm $gadget/configs/b.1/f2
+rm $gadget/configs/b.1/f1
+rmdir $gadget/configs/b.1/strings/0x409/
+rmdir $gadget/configs/b.1/strings/0x409
+rmdir $gadget/configs/b.1
+rmdir $gadget/configs/b.1/
 # END OF COMMENTME
 
 echo HAHA > /dev/kmsg
@@ -428,6 +426,7 @@ cd /target
 echo HIHI > /dev/kmsg
 pivot_root /target debug_ramdisk
 echo HEHE > /dev/kmsg
+
 
 unset PATH
 exec /debug_ramdisk/bin/busybox chroot . /system/bin/init selinux_setup > /dev/kmsg
