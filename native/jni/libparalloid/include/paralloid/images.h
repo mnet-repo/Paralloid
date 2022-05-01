@@ -7,7 +7,7 @@
 
 #include <paralloid/utils.h>
 
-#define INTERNAL_SYSTEM_PATH "/dev/block/mapper/system_orig"
+#define INTERNAL_SYSTEM_PATH "/dev/block/mapper/systemx"
 #define EXT_SDCARD_BASE_PATH "/dev/mntSD/Paralloid"
 #define USERDATA_BASE_PATH   "/dev/mntDATA/unencrypted/Paralloid"
 
@@ -41,7 +41,7 @@ public:
     }
     
     std::optional<fs::path> partitionImagePath(std::string partition_name) {
-        if (partition_name != "system" && partition_name != "product") {
+        if (partition_name != "system" && partition_name != "odm" && partition_name != "system_ext" && partition_name != "product") {
             return std::nullopt;
         } else {
             return imagePath() / (partition_name + ".img");
@@ -52,6 +52,14 @@ public:
         return *partitionImagePath("system");
     }
     
+    fs::path odmImagePath() {
+        return *partitionImagePath("odm");
+    }
+
+    fs::path system_extImagePath() {
+        return *partitionImagePath("system_ext");
+    }
+
     fs::path productImagePath() {
         return *partitionImagePath("product");
     }
