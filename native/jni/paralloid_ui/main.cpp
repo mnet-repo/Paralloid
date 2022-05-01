@@ -36,7 +36,13 @@ void boot_target(string target) {
     // Release the UI resources because we are handing over to the real init
     // Also, construct a user-friendly boot message to display before the
     // system takes over the framebuffer
-    UI::exit("Booting target " + target + "...");
+    UI::exit("                                   _ \\                        /   /        _)      /\n" \
+ 	     "                                   __/  _ ` /   __/  _ ` /   /   /  _ \\    /  _ ` /\n" \
+ 	     "                                __/   \\__,_/ __/   \\__,_/ __/ __/ \\___/ __/ \\__,_/\n" \
+ 	     "                                                                             unencrypted\n" \
+	     " \n" \
+	     " \n" \
+	     "Booting target " + target + "...");
     // Notify the init process to proceed with booting
     // by writing the target to a marker file
     createMarkerFile("/dev/.paralloid_boot_target", target);

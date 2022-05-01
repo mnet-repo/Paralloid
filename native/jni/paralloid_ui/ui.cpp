@@ -77,7 +77,7 @@ int UI::init() {
    
    if (characters_per_line >= 40) {
        // Use larger fonts on high-resolution screens
-       gr_init_font("font_18x32", &font);
+       gr_init_font("font_12x22", &font);
        gr_font_size(font, &font_width, &font_height);
        characters_per_line = (screen_width - 2 * SIDE_PADDING) / font_width;
    }

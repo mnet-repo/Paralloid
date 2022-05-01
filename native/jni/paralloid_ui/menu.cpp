@@ -6,8 +6,15 @@
 #include <sys/reboot.h>
 
 #define DEFAULT_HELP_TEXT \
-    "Use volume up/down and power to select. " \
-    "Long-press volume down for extra options." \
+    "Long-press volume down for extra options."
+
+#define MENU_TITLE \
+    "                                   _ \                    /  /      _)     /\n" \
+    "                                   __/ _ ` /  __/ _ ` /  /  / _ \   / _ ` /\n" \
+    "                                __/  \__,_/__/  \__,_/__/__/\___/__/\__,_/\n" \
+    "                                                                             unencrypted\n" \
+    " \n" \
+    " \n" \
 
 void boot_target_with_confirmation(string target, shared_ptr<Menu> current_menu) {
     if (target == "internal") {
@@ -17,10 +24,13 @@ void boot_target_with_confirmation(string target, shared_ptr<Menu> current_menu)
         auto path = fs::path(target);
         if (!fs::exists(path.parent_path() / "userdata.img")) {
             switchMenu(make_shared<BootConfirmationMenu>(
+		"                                   _ \\                        /   /        _)      /\n"
+		"                                   __/  _ ` /   __/  _ ` /   /   /  _ \\    /  _ ` /\n"
+		"                                __/   \\__,_/ __/   \\__,_/ __/ __/ \\___/ __/ \\__,_/\n"
+		"                                                                             unencrypted\n"
+		" \n"
+		" \n"
                 "About to create a userdata image (8 GiB by default) for this boot target.\n"
-                "This may not work or can take extremely long "
-                "depending on the underlying filesystem.\n"
-                "If this fails, you can always create the image manually.\n"
                 "Continue?",
                 current_menu, path));
         } else {
@@ -49,13 +59,13 @@ MainMenu::MainMenu() {
 }
 
 string MainMenu::getTitle() {
-    return "Paralloid";
+    return MENU_TITLE;
 }
 
 optional<string> MainMenu::getExtraText() {
     if (remaining_secs > 0) {
         ostringstream s;
-        s << "Selecting default option in " << remaining_secs << " seconds...";
+        s << "Booting default system in " << remaining_secs << " seconds...";
         return s.str();
     } else {
         return DEFAULT_HELP_TEXT;
@@ -64,15 +74,15 @@ optional<string> MainMenu::getExtraText() {
 
 void MainMenu::populateItems() {
     if (fs::exists(INTERNAL_SYSTEM_PATH)) {
-        items->push_back(MenuItem(ACTION_BOOT_INTERNAL, "Boot from internal storage"));
+        items->push_back(MenuItem(ACTION_BOOT_INTERNAL, "Boot internal slot(systemx)"));
     }
     
     if (fs::exists(USERDATA_BASE_PATH)) {
-        items->push_back(MenuItem(ACTION_BOOT_USERDATA, "Boot from userdata"));
+        items->push_back(MenuItem(ACTION_BOOT_USERDATA, "Show targets in userdata"));
     }
     
     if (fs::exists(EXT_SDCARD_BASE_PATH)) {
-        items->push_back(MenuItem(ACTION_BOOT_SDCARD, "Boot from external SD card"));
+        items->push_back(MenuItem(ACTION_BOOT_SDCARD, "Show targets on sdcard"));
     }
     
     items->push_back(MenuItem(ACTION_REBOOT, "Reboot"));
@@ -105,10 +115,24 @@ void MainMenu::onItemSelected(int action) {
     if (action == ACTION_BOOT_INTERNAL) {
         boot_target("internal");
     } else if (action == ACTION_BOOT_SDCARD) {
-        switchMenu(make_shared<ImageSelectionMenu>("Choose image from SD card",
+        switchMenu(make_shared<ImageSelectionMenu>(
+    "                                   _ \\                        /   /        _)      /\n"
+    "                                   __/  _ ` /   __/  _ ` /   /   /  _ \\    /  _ ` /\n"
+    "                                __/   \\__,_/ __/   \\__,_/ __/ __/ \\___/ __/ \\__,_/\n"
+    "                                                                             unencrypted\n"
+    " \n"
+    " \n"
+    "Listing images: sdcard",
             EXT_SDCARD_BASE_PATH));
     } else if (action == ACTION_BOOT_USERDATA) {
-        switchMenu(make_shared<ImageSelectionMenu>("Choose image from userdata",
+        switchMenu(make_shared<ImageSelectionMenu>(
+    "                                   _ \\                        /   /        _)      /\n"
+    "                                   __/  _ ` /   __/  _ ` /   /   /  _ \\    /  _ ` /\n"
+    "                                __/   \\__,_/ __/   \\__,_/ __/ __/ \\___/ __/ \\__,_/\n"
+    "                                                                             unencrypted\n"
+    " \n"
+    " \n"
+    "Listing images: userdata",
             USERDATA_BASE_PATH));
     } else if (action == ACTION_REBOOT) {
         rebootInto(nullptr);
@@ -183,7 +207,14 @@ void BootConfirmationMenu::onConfirmed() {
 }
 
 string ExtraOptionsMenu::getTitle() {
-    return "Extra options for target " + target;
+    return
+	"                                   _ \\                        /   /        _)      /\n"
+	"                                   __/  _ ` /   __/  _ ` /   /   /  _ \\    /  _ ` /\n"
+	"                                __/   \\__,_/ __/   \\__,_/ __/ __/ \\___/ __/ \\__,_/\n"
+	"                                                                             unencrypted\n"
+	" \n"
+	" \n"
+	"Extra options for target " + target;
 }
 
 void ExtraOptionsMenu::populateItems() {

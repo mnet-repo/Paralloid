@@ -29,7 +29,7 @@ public:
 #define ACTION_REBOOT_REC    1101
 #define ACTION_REBOOT_BL     1102
 
-#define MAIN_MENU_TIMEOUT    20
+#define MAIN_MENU_TIMEOUT    10
 class MainMenu : public CachedMenu {
 private:
     int remaining_secs = MAIN_MENU_TIMEOUT;
@@ -108,6 +108,12 @@ private:
 public:
     DeleteDataConfirmationMenu(shared_ptr<Menu> last_menu, fs::path image_path)
       : ConfirmationMenu(
+	  "                                   _ \\                        /   /        _)      /\n"
+ 	  "                                   __/  _ ` /   __/  _ ` /   /   /  _ \\    /  _ ` /\n"
+ 	  "                                __/   \\__,_/ __/   \\__,_/ __/ __/ \\___/ __/ \\__,_/\n"
+ 	  "                                                                             unencrypted\n"
+	  " \n"
+	  " \n"
           "This will delete the userdata image file of the selected target.\n"
           "At the next boot, you will be prompted to create a new empty image.\n"
           "Continue?"
@@ -122,7 +128,13 @@ private:
 public:
     FormatDataConfirmationMenu(shared_ptr<Menu> last_menu, fs::path target_image_path)
       : ConfirmationMenu(
-          "About to format the userdata image file of the selected target.\n"
+	  "                                   _ \\                        /   /        _)      /\n"
+ 	  "                                   __/  _ ` /   __/  _ ` /   /   /  _ \\    /  _ ` /\n"
+ 	  "                                __/   \\__,_/ __/   \\__,_/ __/ __/ \\___/ __/ \\__,_/\n"
+ 	  "                                                                             unencrypted\n"
+	  " \n"
+	  " \n"          
+	  "About to format the userdata image file of the selected target.\n"
           "This preserves the size of the image.\n"
           "Continue?"
         , last_menu),
