@@ -1,4 +1,6 @@
 #!/bin/sh
 
-USERDATA_IMAGE="$1"
-yes | mke2fs -t ext4 -b 4096 -O uninit_bg "$USERDATA_IMAGE"
+#USERDATA_IMAGE="$1"
+mkfs.f2fs -l userdata -f -g extra_attr "$1"
+#mkfs.f2fs -l userdata -d 1 -f -g encrypt,extra_attr,flexible_inline_attr "$USERDATA_IMAGE"
+#yes | mke2fs -t ext4 -b 4096 -O uninit_bg "$USERDATA_IMAGE"
