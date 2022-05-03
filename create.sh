@@ -1,19 +1,18 @@
 #!/bin/bash
 
-#if ! which ndk-build >/dev/null 2>&1;then
+if ! which ndk-build >/dev/null 2>&1;then
     export ANDROID_NDK=/root/android-ndk-r23b
     export PATH=$PATH:$ANDROID_NDK
-#    if [ ! -d NDK ];then
-#        mkdir -p NDK
-#        (
-#            cd NDK
-#            wget https://dl.google.com/android/repository/android-ndk-r22b-linux-x86_64.zip
-#            unzip android-ndk-r22b-linux-x86_64.zip
-#            ln -s /root/android-ndk-r23b ndk
-#        )
+    if [ ! -d NDK ];then
+        mkdir -p NDK
+        (
+            cd NDK
+            wget https://dl.google.com/android/repository/android-ndk-r24-linux-x86_64.zip
+            unzip android-ndk-r22b-linux-x86_64.zip
+        )
 
-#    fi
-#fi
+    fi
+fi
 # Ensure busybox exists first
 if [ ! -f busybox/build/busybox ];then
     (
