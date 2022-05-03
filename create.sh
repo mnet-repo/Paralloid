@@ -23,7 +23,7 @@ fi
 
 # Run NDK build first
 pushd native
-/root/android-ndk-r23b/ndk-build -j || exit 1
+ndk-build -j || exit 1
 popd
 
 rm -Rf rootfs rootfs.img
